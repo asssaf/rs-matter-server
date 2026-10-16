@@ -9,7 +9,7 @@
 # The file deliberately avoids BuildKit-only syntax so it also builds with the
 # classic builder.
 
-FROM rust:1-bookworm AS builder
+FROM rust:1-alpine AS builder
 
 # rs-matter is a large crate and rustc's peak memory is per-parallel-job, so a
 # small builder can get the compiler OOM-killed. `default` lets cargo choose;
@@ -70,13 +70,12 @@ RUN mkdir -p /out/data
 
 # ---------------------------------------------------------------------------
 
-# glibc and libgcc, no package manager, no shell. The Debian 12 variant matches
-# the bookworm builder's glibc, which a dynamically linked binary depends on.
+# Statically linked binary, no package manager, no shell.
 #
 # No CA certificates are installed and none are needed: the HTTPS client used
 # for firmware update checks is rustls with `webpki-roots`, so the Mozilla root
 # store is compiled into the binary rather than read from disk.
-FROM gcr.io/distroless/cc-debian12:nonroot
+FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=builder /out/rs-matter-server /usr/local/bin/rs-matter-server
 # uid 65532 is distroless's `nonroot`. Nothing here needs privilege: the ports
